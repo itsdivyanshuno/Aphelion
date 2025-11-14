@@ -3,162 +3,211 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>MindWellMonitor — MindWatch</title>
+  <title>MindWatch — Modern Dashboard</title>
 
-  <!-- Google Font -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-
-  <!-- Chart.js -->
+  <!-- Fonts & Chart.js -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">MindWatch<span class="muted"> • MindWellMonitor</span></div>
-    <nav>
-      <button class="nav-btn" data-target="home">Home</button>
-      <button class="nav-btn" data-target="dashboard">Dashboard</button>
-      <button class="nav-btn" data-target="checkin">Check-in</button>
-      <button class="nav-btn" data-target="insights">Insights</button>
-    </nav>
-  </header>
-
-  <main class="container">
-    <!-- HOME -->
-    <section id="home" class="page active">
-      <div class="hero">
-        <h1>MindWatch — AI-Powered Wellbeing Monitor</h1>
-        <p class="lead">Continuous behaviour tracking, stress detection & early recommendations — demo frontend.</p>
-        <div class="hero-cards">
-          <div class="card">
-            <h3>Early detection</h3>
-            <p>Detect stress trends earlier with continuous check-ins and behaviour signals.</p>
-          </div>
-          <div class="card">
-            <h3>Personalized tips</h3>
-            <p>Simple, actionable recommendations based on recent trends.</p>
-          </div>
-          <div class="card">
-            <h3>Privacy-first</h3>
-            <p>Data stored locally for this demo. Integrate secure cloud storage for production.</p>
-          </div>
-        </div>
-        <button id="startMonitoring" class="primary">Open Dashboard</button>
-      </div>
-    </section>
-
-    <!-- DASHBOARD -->
-    <section id="dashboard" class="page">
-      <div class="grid">
-        <div class="card large">
-          <h2>Daily Wellbeing</h2>
-          <div class="score-row">
-            <canvas id="scoreCircle" width="180" height="180"></canvas>
-            <div class="score-meta">
-              <div class="score-number" id="scoreNumber">—</div>
-              <div id="scoreLabel" class="muted">Loading...</div>
-              <div class="recommendation" id="recommendation">No data yet. Do a check-in.</div>
-            </div>
-          </div>
-          <div class="stat-row">
-            <div class="stat">
-              <div class="stat-title">Stress</div>
-              <div id="stressBadge" class="stat-value">—</div>
-            </div>
-            <div class="stat">
-              <div class="stat-title">Mood (latest)</div>
-              <div id="moodBadge" class="stat-value">—</div>
-            </div>
-            <div class="stat">
-              <div class="stat-title">Sleep (hrs)</div>
-              <div id="sleepBadge" class="stat-value">—</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <h3>Behaviour Deviation</h3>
-          <p id="deviationText">No behaviour data yet.</p>
-          <small class="muted">Shows % change against the recent average (simple heuristic).</small>
-        </div>
-
-        <div class="card">
-          <h3>Quick Actions</h3>
-          <button id="quickBreathe" class="outline">10-min breathing</button>
-          <button id="quickBreak" class="outline">Schedule a 15-min break</button>
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-top">
+        <div class="logo">MW</div>
+        <div class="brand">
+          <div class="brand-title">MindWatch</div>
+          <div class="brand-sub">MindWellMonitor</div>
         </div>
       </div>
-    </section>
 
-    <!-- CHECK-IN -->
-    <section id="checkin" class="page">
-      <div class="card">
-        <h2>Daily Check-in</h2>
-        <p class="muted">Keep it honest — small check-ins help the model detect trends early.</p>
+      <nav class="side-nav">
+        <button class="side-btn active" data-target="dashboard">Dashboard</button>
+        <button class="side-btn" data-target="checkin">Check-in</button>
+        <button class="side-btn" data-target="insights">Insights</button>
+        <button class="side-btn" data-target="calendar">Mood Calendar</button>
+      </nav>
 
-        <div class="form-row">
-          <label>Mood</label>
-          <div class="mood-picker" id="moodPicker">
-            <button class="mood" data-value="4" title="Great">😄</button>
-            <button class="mood" data-value="3" title="Good">🙂</button>
-            <button class="mood" data-value="2" title="Okay">😐</button>
-            <button class="mood" data-value="1" title="Low">☹️</button>
-            <button class="mood" data-value="0" title="Very low">😢</button>
-          </div>
+      <div class="sidebar-bottom">
+        <div class="streak">
+          <div class="streak-num" id="streakNum">—</div>
+          <div class="streak-label">Current Streak</div>
         </div>
-
-        <div class="form-row">
-          <label>Stress level (0 none — 100 very high)</label>
-          <input id="stressInput" type="range" min="0" max="100" value="30" />
-          <div class="range-value"><span id="stressVal">30</span>/100</div>
-        </div>
-
-        <div class="form-row">
-          <label>Sleep hours (last night)</label>
-          <input id="sleepInput" type="number" min="0" max="24" value="7" />
-        </div>
-
-        <div class="form-row">
-          <label>Quick note (optional)</label>
-          <input id="noteInput" type="text" placeholder="How are you feeling in a sentence?" maxlength="120" />
-        </div>
-
-        <div class="actions">
-          <button id="saveCheckin" class="primary">Save Check-in</button>
-          <button id="clearData" class="danger">Clear all saved data</button>
-        </div>
-
-        <small class="muted">This demo stores data in your browser (localStorage).</small>
-      </div>
-    </section>
-
-    <!-- INSIGHTS -->
-    <section id="insights" class="page">
-      <div class="card">
-        <h2>Insights & Trends</h2>
-        <div class="charts">
-          <div class="chart-card">
-            <h4>Mood Trend</h4>
-            <canvas id="moodChart" height="160"></canvas>
-          </div>
-          <div class="chart-card">
-            <h4>Stress Trend</h4>
-            <canvas id="stressChart" height="160"></canvas>
-          </div>
-          <div class="chart-card">
-            <h4>Sleep Trend</h4>
-            <canvas id="sleepChart" height="160"></canvas>
-          </div>
+        <div class="theme-toggle">
+          <label class="switch">
+            <input type="checkbox" id="themeToggle">
+            <span class="slider"></span>
+          </label>
+          <div class="toggle-label">Dark</div>
         </div>
       </div>
-    </section>
-  </main>
+    </aside>
 
-  <footer class="footer">
-    <div>MindWatch • Demo • Team Aphelion</div>
-    <div class="muted">Local demo — integrate secure backend & ML for production.</div>
-  </footer>
+    <!-- MAIN -->
+    <div class="main">
+      <header class="topbar">
+        <div class="search">
+          <input id="searchInput" placeholder="Search insights, tips..." />
+        </div>
+        <div class="top-actions">
+          <button id="notifyBtn" class="btn small">Enable Daily Reminder</button>
+          <div class="avatar">A</div>
+        </div>
+      </header>
+
+      <main class="content">
+        <!-- DASHBOARD -->
+        <section id="dashboard" class="page active">
+          <div class="row">
+            <div class="card card-large">
+              <div class="card-head">
+                <h3>Daily Wellbeing</h3>
+                <small class="muted">Based on latest check-in</small>
+              </div>
+              <div class="dashboard-grid">
+                <div class="score-panel">
+                  <canvas id="scoreRing" width="200" height="200"></canvas>
+                  <div class="score-meta">
+                    <div id="scoreNum" class="big">—</div>
+                    <div id="scoreLabel" class="muted">—</div>
+                  </div>
+                </div>
+
+                <div class="insights-panel">
+                  <div class="insight ai">
+                    <h4>AI Insights</h4>
+                    <p id="aiInsight">No data yet. Do a check-in to get personalised insights.</p>
+                  </div>
+
+                  <div class="mini-stats">
+                    <div class="stat">
+                      <div class="s-title">Latest Mood</div>
+                      <div id="latestMood" class="s-value">—</div>
+                    </div>
+                    <div class="stat">
+                      <div class="s-title">Latest Stress</div>
+                      <div id="latestStress" class="s-value">—</div>
+                    </div>
+                    <div class="stat">
+                      <div class="s-title">Latest Sleep</div>
+                      <div id="latestSleep" class="s-value">—</div>
+                    </div>
+                  </div>
+
+                  <div class="action-row">
+                    <button id="quickBreathe" class="btn">Breathe</button>
+                    <button id="quickWalk" class="btn outline">Short Walk</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h4>Trend Snapshot</h4>
+              <canvas id="trendChart" height="160"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <!-- CHECKIN -->
+        <section id="checkin" class="page">
+          <div class="row">
+            <div class="card">
+              <h3>Daily Check-in</h3>
+              <p class="muted">Short check-ins help detect trends early.</p>
+
+              <div class="form-row">
+                <label>Mood</label>
+                <div class="mood-picker" id="moodPicker">
+                  <button class="mood" data-value="4">😄</button>
+                  <button class="mood" data-value="3">🙂</button>
+                  <button class="mood" data-value="2">😐</button>
+                  <button class="mood" data-value="1">☹️</button>
+                  <button class="mood" data-value="0">😢</button>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <label>Stress (0-100)</label>
+                <input id="stressInput" type="range" min="0" max="100" value="30" />
+                <div class="range-val"><span id="stressVal">30</span>/100</div>
+              </div>
+
+              <div class="form-row two-col">
+                <div>
+                  <label>Sleep (hrs)</label>
+                  <input id="sleepInput" type="number" min="0" max="24" value="7" />
+                </div>
+                <div>
+                  <label>Note (optional)</label>
+                  <input id="noteInput" type="text" placeholder="One-line note" maxlength="120" />
+                </div>
+              </div>
+
+              <div class="actions">
+                <button id="saveBtn" class="btn primary large">Save Check-in</button>
+                <button id="clearBtn" class="btn danger">Clear Data</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h4>Streak & Summary</h4>
+              <div class="streak-large" id="streakBig">—</div>
+              <p class="muted" id="streakText">Keep a daily habit — check in every day.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- INSIGHTS -->
+        <section id="insights" class="page">
+          <div class="row">
+            <div class="card">
+              <h3>Insights & Trends</h3>
+              <div class="charts">
+                <div class="chart-card">
+                  <h4>Mood Trend</h4>
+                  <canvas id="moodChart" height="120"></canvas>
+                </div>
+                <div class="chart-card">
+                  <h4>Stress Trend</h4>
+                  <canvas id="stressChart" height="120"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h4>Quick Exports</h4>
+              <p class="muted">Download your data for sharing with a clinician (CSV).</p>
+              <div class="actions">
+                <button id="exportCsv" class="btn outline">Export CSV</button>
+                <button id="clearAll" class="btn danger">Clear Local Data</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- CALENDAR -->
+        <section id="calendar" class="page">
+          <div class="row">
+            <div class="card">
+              <h3>Mood Calendar (last 30 days)</h3>
+              <div id="moodCalendar" class="mood-calendar"></div>
+              <p class="muted">Colors show daily mood: green = good, yellow = neutral, red = low</p>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <div>MindWatch • Team Aphelion</div>
+        <div class="muted">Local demo — swap to AWS for production storage</div>
+      </footer>
+    </div> <!-- /main -->
+  </div> <!-- /app -->
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="app.js"></script>
 </body>

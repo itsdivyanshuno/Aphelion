@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MindWellMonitor — MindWatch</title>
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">MindWatch<span class="muted"> • MindWellMonitor</span></div>
+    <nav>
+      <button class="nav-btn" data-target="home">Home</button>
+      <button class="nav-btn" data-target="dashboard">Dashboard</button>
+      <button class="nav-btn" data-target="checkin">Check-in</button>
+      <button class="nav-btn" data-target="insights">Insights</button>
+    </nav>
+  </header>
+
+  <main class="container">
+    <!-- HOME -->
+    <section id="home" class="page active">
+      <div class="hero">
+        <h1>MindWatch — AI-Powered Wellbeing Monitor</h1>
+        <p class="lead">Continuous behaviour tracking, stress detection & early recommendations — demo frontend.</p>
+        <div class="hero-cards">
+          <div class="card">
+            <h3>Early detection</h3>
+            <p>Detect stress trends earlier with continuous check-ins and behaviour signals.</p>
+          </div>
+          <div class="card">
+            <h3>Personalized tips</h3>
+            <p>Simple, actionable recommendations based on recent trends.</p>
+          </div>
+          <div class="card">
+            <h3>Privacy-first</h3>
+            <p>Data stored locally for this demo. Integrate secure cloud storage for production.</p>
+          </div>
+        </div>
+        <button id="startMonitoring" class="primary">Open Dashboard</button>
+      </div>
+    </section>
+
+    <!-- DASHBOARD -->
+    <section id="dashboard" class="page">
+      <div class="grid">
+        <div class="card large">
+          <h2>Daily Wellbeing</h2>
+          <div class="score-row">
+            <canvas id="scoreCircle" width="180" height="180"></canvas>
+            <div class="score-meta">
+              <div class="score-number" id="scoreNumber">—</div>
+              <div id="scoreLabel" class="muted">Loading...</div>
+              <div class="recommendation" id="recommendation">No data yet. Do a check-in.</div>
+            </div>
+          </div>
+          <div class="stat-row">
+            <div class="stat">
+              <div class="stat-title">Stress</div>
+              <div id="stressBadge" class="stat-value">—</div>
+            </div>
+            <div class="stat">
+              <div class="stat-title">Mood (latest)</div>
+              <div id="moodBadge" class="stat-value">—</div>
+            </div>
+            <div class="stat">
+              <div class="stat-title">Sleep (hrs)</div>
+              <div id="sleepBadge" class="stat-value">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Behaviour Deviation</h3>
+          <p id="deviationText">No behaviour data yet.</p>
+          <small class="muted">Shows % change against the recent average (simple heuristic).</small>
+        </div>
+
+        <div class="card">
+          <h3>Quick Actions</h3>
+          <button id="quickBreathe" class="outline">10-min breathing</button>
+          <button id="quickBreak" class="outline">Schedule a 15-min break</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHECK-IN -->
+    <section id="checkin" class="page">
+      <div class="card">
+        <h2>Daily Check-in</h2>
+        <p class="muted">Keep it honest — small check-ins help the model detect trends early.</p>
+
+        <div class="form-row">
+          <label>Mood</label>
+          <div class="mood-picker" id="moodPicker">
+            <button class="mood" data-value="4" title="Great">😄</button>
+            <button class="mood" data-value="3" title="Good">🙂</button>
+            <button class="mood" data-value="2" title="Okay">😐</button>
+            <button class="mood" data-value="1" title="Low">☹️</button>
+            <button class="mood" data-value="0" title="Very low">😢</button>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>Stress level (0 none — 100 very high)</label>
+          <input id="stressInput" type="range" min="0" max="100" value="30" />
+          <div class="range-value"><span id="stressVal">30</span>/100</div>
+        </div>
+
+        <div class="form-row">
+          <label>Sleep hours (last night)</label>
+          <input id="sleepInput" type="number" min="0" max="24" value="7" />
+        </div>
+
+        <div class="form-row">
+          <label>Quick note (optional)</label>
+          <input id="noteInput" type="text" placeholder="How are you feeling in a sentence?" maxlength="120" />
+        </div>
+
+        <div class="actions">
+          <button id="saveCheckin" class="primary">Save Check-in</button>
+          <button id="clearData" class="danger">Clear all saved data</button>
+        </div>
+
+        <small class="muted">This demo stores data in your browser (localStorage).</small>
+      </div>
+    </section>
+
+    <!-- INSIGHTS -->
+    <section id="insights" class="page">
+      <div class="card">
+        <h2>Insights & Trends</h2>
+        <div class="charts">
+          <div class="chart-card">
+            <h4>Mood Trend</h4>
+            <canvas id="moodChart" height="160"></canvas>
+          </div>
+          <div class="chart-card">
+            <h4>Stress Trend</h4>
+            <canvas id="stressChart" height="160"></canvas>
+          </div>
+          <div class="chart-card">
+            <h4>Sleep Trend</h4>
+            <canvas id="sleepChart" height="160"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div>MindWatch • Demo • Team Aphelion</div>
+    <div class="muted">Local demo — integrate secure backend & ML for production.</div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

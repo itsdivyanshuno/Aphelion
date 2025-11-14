@@ -2,16 +2,31 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>MindWatch — Modern Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MindWatch — Wellbeing Monitor</title>
 
-  <!-- Fonts & Chart.js -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
+  <!-- Onboarding Modal -->
+  <div id="onboardModal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Welcome to MindWatch</h2>
+      <p>Quick tips to get started:</p>
+      <ul>
+        <li>Use daily check-ins to track mood, stress, sleep & notes.</li>
+        <li>View trends & insights over time.</li>
+        <li>Export CSV for clinicians.</li>
+      </ul>
+
+      <button id="onboardOk" class="btn primary large">Got it</button>
+    </div>
+  </div>
+
   <div class="app">
     <!-- SIDEBAR -->
     <aside class="sidebar">
@@ -25,9 +40,9 @@
 
       <nav class="side-nav">
         <button class="side-btn active" data-target="dashboard">Dashboard</button>
-        <button class="side-btn" data-target="checkin">Check-in</button>
+        <button class="side-btn" data-target="checkin">Check-In</button>
         <button class="side-btn" data-target="insights">Insights</button>
-        <button class="side-btn" data-target="calendar">Mood Calendar</button>
+        <button class="side-btn" data-target="calendar">Calendar</button>
       </nav>
 
       <div class="sidebar-bottom">
@@ -35,6 +50,7 @@
           <div class="streak-num" id="streakNum">—</div>
           <div class="streak-label">Current Streak</div>
         </div>
+
         <div class="theme-toggle">
           <label class="switch">
             <input type="checkbox" id="themeToggle">
@@ -49,8 +65,9 @@
     <div class="main">
       <header class="topbar">
         <div class="search">
-          <input id="searchInput" placeholder="Search insights, tips..." />
+          <input id="searchInput" placeholder="Search notes, tags..." />
         </div>
+
         <div class="top-actions">
           <button id="notifyBtn" class="btn small">Enable Daily Reminder</button>
           <div class="avatar">A</div>
@@ -58,6 +75,7 @@
       </header>
 
       <main class="content">
+
         <!-- DASHBOARD -->
         <section id="dashboard" class="page active">
           <div class="row">
@@ -66,6 +84,7 @@
                 <h3>Daily Wellbeing</h3>
                 <small class="muted">Based on latest check-in</small>
               </div>
+
               <div class="dashboard-grid">
                 <div class="score-panel">
                   <canvas id="scoreRing" width="200" height="200"></canvas>
@@ -78,7 +97,7 @@
                 <div class="insights-panel">
                   <div class="insight ai">
                     <h4>AI Insights</h4>
-                    <p id="aiInsight">No data yet. Do a check-in to get personalised insights.</p>
+                    <p id="aiInsight">No data yet. Do a check-in.</p>
                   </div>
 
                   <div class="mini-stats">
@@ -111,7 +130,7 @@
           </div>
         </section>
 
-        <!-- CHECKIN -->
+        <!-- CHECK-IN -->
         <section id="checkin" class="page">
           <div class="row">
             <div class="card">
@@ -120,7 +139,7 @@
 
               <div class="form-row">
                 <label>Mood</label>
-                <div class="mood-picker" id="moodPicker">
+                <div class="mood-picker">
                   <button class="mood" data-value="4">😄</button>
                   <button class="mood" data-value="3">🙂</button>
                   <button class="mood" data-value="2">😐</button>
@@ -142,7 +161,7 @@
                 </div>
                 <div>
                   <label>Note (optional)</label>
-                  <input id="noteInput" type="text" placeholder="One-line note" maxlength="120" />
+                  <input id="noteInput" type="text" maxlength="120" placeholder="One-line note" />
                 </div>
               </div>
 
@@ -155,7 +174,7 @@
             <div class="card">
               <h4>Streak & Summary</h4>
               <div class="streak-large" id="streakBig">—</div>
-              <p class="muted" id="streakText">Keep a daily habit — check in every day.</p>
+              <p class="muted" id="streakText">Build your daily habit.</p>
             </div>
           </div>
         </section>
@@ -165,11 +184,13 @@
           <div class="row">
             <div class="card">
               <h3>Insights & Trends</h3>
+
               <div class="charts">
                 <div class="chart-card">
                   <h4>Mood Trend</h4>
                   <canvas id="moodChart" height="120"></canvas>
                 </div>
+
                 <div class="chart-card">
                   <h4>Stress Trend</h4>
                   <canvas id="stressChart" height="120"></canvas>
@@ -179,7 +200,8 @@
 
             <div class="card">
               <h4>Quick Exports</h4>
-              <p class="muted">Download your data for sharing with a clinician (CSV).</p>
+              <p class="muted">Export your full data as CSV.</p>
+
               <div class="actions">
                 <button id="exportCsv" class="btn outline">Export CSV</button>
                 <button id="clearAll" class="btn danger">Clear Local Data</button>
@@ -192,22 +214,23 @@
         <section id="calendar" class="page">
           <div class="row">
             <div class="card">
-              <h3>Mood Calendar (last 30 days)</h3>
+              <h3>Mood Calendar (30 days)</h3>
               <div id="moodCalendar" class="mood-calendar"></div>
-              <p class="muted">Colors show daily mood: green = good, yellow = neutral, red = low</p>
+              <p class="muted">Green = good, Yellow = neutral, Red = low</p>
             </div>
           </div>
         </section>
+
       </main>
 
       <footer class="footer">
         <div>MindWatch • Team Aphelion</div>
-        <div class="muted">Local demo — swap to AWS for production storage</div>
+        <div class="muted">Local demo only</div>
       </footer>
-    </div> <!-- /main -->
-  </div> <!-- /app -->
+    </div>
+  </div>
 
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="toast" class="toast"></div>
 
   <script src="app.js"></script>
 </body>

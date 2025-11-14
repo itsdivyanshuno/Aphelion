@@ -1,305 +1,392 @@
-/* MindWatch — Modern Dashboard Pro (Option A)
-   - Stores data in localStorage under 'mindwell_data_v1'
-   - Adds streak counter, mood calendar, AI insights, CSV export, notifications
-*/
+/* ============================================================
+   MindWatch — App Logic (Clean Rebuild)
+============================================================ */
 
-const STORAGE_KEY = 'mindwell_data_v1';
+/* ==========================
+   GLOBAL ELEMENTS
+========================== */
+const pages = document.querySelectorAll(".page");
+const navBtns = document.querySelectorAll(".side-btn");
+const toast = document.getElementById("toast");
 
-// ---------- Utilities ----------
-function readData(){ const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : []; }
-function writeData(arr){ localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }
-function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
-function fmtDate(iso){ const d = new Date(iso); return d.toLocaleDateString(); }
-function daysBetween(a,b){ return Math.floor((b - a) / (1000*60*60*24)); }
-
-// ---------- Score formula ----------
-function computeScore(entry){
-  const moodNorm = (entry.mood / 4) * 100;
-  const stressInv = (100 - entry.stress);
-  const s = clamp(entry.sleep, 0, 12);
-  const ideal = 7.5; const diff = Math.abs(s - ideal);
-  const sleepScore = clamp(Math.round((1 - diff / 7.5) * 100), 0, 100);
-  const score = Math.round(moodNorm * 0.5 + stressInv * 0.35 + sleepScore * 0.15);
-  return clamp(score,0,100);
-}
-
-// ---------- Toast ----------
-function toast(msg, ms=2500){
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.style.display = 'block'; t.style.opacity = 1;
-  setTimeout(()=>{ t.style.transition='opacity 300ms'; t.style.opacity=0; setTimeout(()=>t.style.display='none',320); }, ms);
-}
-
-// ---------- Elements ----------
-const pages = document.querySelectorAll('.page');
-const sideBtns = document.querySelectorAll('.side-btn');
-const navBtns = document.querySelectorAll('.side-btn');
-const themeToggle = document.getElementById('themeToggle');
-const notifyBtn = document.getElementById('notifyBtn');
-
-// Checkin UI
-const moodButtons = document.querySelectorAll('.mood');
-const stressInput = document.getElementById('stressInput');
-const stressVal = document.getElementById('stressVal');
-const sleepInput = document.getElementById('sleepInput');
-const noteInput = document.getElementById('noteInput');
-const saveBtn = document.getElementById('saveBtn');
-const clearBtn = document.getElementById('clearBtn');
-
-// Dashboard UI
-const scoreNum = document.getElementById('scoreNum');
-const scoreLabel = document.getElementById('scoreLabel');
-const latestMood = document.getElementById('latestMood');
-const latestStress = document.getElementById('latestStress');
-const latestSleep = document.getElementById('latestSleep');
-const aiInsight = document.getElementById('aiInsight');
-const streakNum = document.getElementById('streakNum');
-const streakBig = document.getElementById('streakBig');
-
-// Charts
-let scoreRing = null, trendChart = null, moodChart = null, stressChart = null;
-
-// ---------- Navigation ----------
-sideBtns.forEach(btn=>{
-  btn.addEventListener('click', ()=> {
-    sideBtns.forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    navigateTo(btn.dataset.target);
-  });
-});
-
-function navigateTo(id){
-  pages.forEach(p=>p.classList.remove('active'));
-  const page = document.getElementById(id);
-  if(page) page.classList.add('active');
-  // render page-specific
-  if(id === 'dashboard') renderDashboard();
-  if(id === 'insights') renderCharts();
-  if(id === 'calendar') renderCalendar();
-}
-
-// ---------- Theme toggle ----------
-themeToggle && themeToggle.addEventListener('change', (e)=>{
-  document.documentElement.style.setProperty('--bg', e.target.checked ? '#0b1220' : '#f5f8fb');
-  document.body.classList.toggle('dark', e.target.checked);
-});
-
-// ---------- Notification ----------
-notifyBtn.addEventListener('click', async ()=>{
-  if(!('Notification' in window)){
-    toast('Notifications not supported in this browser');
-    return;
-  }
-  try{
-    const perm = await Notification.requestPermission();
-    if(perm === 'granted'){
-      toast('Daily reminder enabled (demo)');
-      // schedule a quick demo notification in 5 sec (for the demo)
-      setTimeout(()=> new Notification('MindWatch reminder', {body:'Don\'t forget your daily check-in!'}), 5000);
-    } else {
-      toast('Notifications disabled');
-    }
-  }catch(e){
-    toast('Notification error');
-  }
-});
-
-// ---------- Check-in logic ----------
+/* Check-in inputs */
 let selectedMood = null;
-moodButtons.forEach(b=>{
-  b.addEventListener('click', ()=>{
-    moodButtons.forEach(x=>x.classList.remove('selected'));
-    b.classList.add('selected');
-    selectedMood = Number(b.dataset.value);
-  });
-});
-stressInput && stressInput.addEventListener('input', ()=> stressVal.textContent = stressInput.value);
+const stressInput = document.getElementById("stressInput");
+const stressVal = document.getElementById("stressVal");
+const sleepInput = document.getElementById("sleepInput");
+const noteInput = document.getElementById("noteInput");
 
-saveBtn.addEventListener('click', ()=>{
-  const mood = (selectedMood === null) ? 2 : selectedMood;
-  const stress = Number(stressInput.value);
-  const sleep = Number(sleepInput.value) || 0;
-  const note = noteInput.value || '';
-  const entry = { ts: new Date().toISOString(), mood, stress, sleep, note };
-  const arr = readData(); arr.push(entry); writeData(arr);
-  toast('Check-in saved');
-  noteInput.value = '';
-  renderAll();
-  navigateTo('dashboard');
-});
+/* DOM elements */
+const streakNum = document.getElementById("streakNum");
+const streakBig = document.getElementById("streakBig");
+const streakText = document.getElementById("streakText");
+const aiInsight = document.getElementById("aiInsight");
 
-clearBtn.addEventListener('click', ()=>{
-  if(confirm('Clear all local demo data?')){ localStorage.removeItem(STORAGE_KEY); toast('Data cleared'); renderAll(); }
-});
+const scoreNum = document.getElementById("scoreNum");
+const scoreLabel = document.getElementById("scoreLabel");
+const latestMood = document.getElementById("latestMood");
+const latestStress = document.getElementById("latestStress");
+const latestSleep = document.getElementById("latestSleep");
 
-// ---------- Charts init ----------
-function initCharts(){
-  // score ring
-  const ctx = document.getElementById('scoreRing').getContext('2d');
-  if(scoreRing) scoreRing.destroy();
-  scoreRing = new Chart(ctx, {
-    type:'doughnut',
-    data:{datasets:[{data:[0,100],backgroundColor:['#2563eb','#eef4ff'],cutout:'75%'}]},
-    options:{responsive:false,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false}}}
-  });
+/* Onboarding modal */
+const onboardModal = document.getElementById("onboardModal");
+const onboardOk = document.getElementById("onboardOk");
 
-  // trend chart
-  const tctx = document.getElementById('trendChart').getContext('2d');
-  if(trendChart) trendChart.destroy();
-  trendChart = new Chart(tctx, {
-    type:'line',
-    data:{labels:[],datasets:[
-      {label:'Mood',data:[],borderColor:'#10b981',tension:0.3,fill:false},
-      {label:'Stress',data:[],borderColor:'#ef4444',tension:0.3,fill:false,yAxisID:'y1'}
-    ]},
-    options:{plugins:{legend:{display:false}},scales:{y:{min:0,max:4},y1:{position:'right',min:0,max:100}}}
-  });
+/* ==========================
+   LOCAL STORAGE HANDLING
+========================== */
+const STORAGE_KEY = "mindwatch_data_v1";
 
-  // insights charts
-  const mctx = document.getElementById('moodChart').getContext('2d');
-  const sctx = document.getElementById('stressChart').getContext('2d');
-
-  if(moodChart) moodChart.destroy();
-  moodChart = new Chart(mctx, {type:'line',data:{labels:[],datasets:[{data:[],borderColor:'#2563eb',tension:0.35,fill:true,backgroundColor:'rgba(37,99,235,0.06)'}]},options:{plugins:{legend:{display:false}},scales:{y:{min:0,max:4}}}});
-
-  if(stressChart) stressChart.destroy();
-  stressChart = new Chart(sctx, {type:'line',data:{labels:[],datasets:[{data:[],borderColor:'#06b6d4',tension:0.35,fill:true,backgroundColor:'rgba(6,182,212,0.06)'}]},options:{plugins:{legend:{display:false}},scales:{y:{min:0,max:100}}}});
+function loadData() {
+  const json = localStorage.getItem(STORAGE_KEY);
+  return json ? JSON.parse(json) : [];
 }
 
-initCharts();
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
 
-// ---------- Render functions ----------
-function renderDashboard(){
-  const data = readData();
-  if(data.length === 0){
-    scoreNum.textContent='—'; scoreLabel.textContent='No data';
-    latestMood.textContent='—'; latestStress.textContent='—'; latestSleep.textContent='—';
-    aiInsight.textContent='No data yet. Do a check-in to receive personalised insights.';
-    streakNum.textContent='0'; streakBig.textContent='0 days';
-    scoreRing.data.datasets[0].data = [0,100]; scoreRing.update();
-    trendChart.data.labels = []; trendChart.data.datasets[0].data = []; trendChart.data.datasets[1].data = []; trendChart.update();
-    return;
+/* ==========================
+   NAVIGATION
+========================== */
+navBtns.forEach(btn =>
+  btn.addEventListener("click", () => {
+    navBtns.forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+
+    const target = btn.dataset.target;
+    pages.forEach(p => p.classList.remove("active"));
+    document.getElementById(target).classList.add("active");
+  })
+);
+
+/* ==========================
+   TOAST
+========================== */
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.style.display = "block";
+  setTimeout(() => (toast.style.display = "none"), 2000);
+}
+
+/* ==========================
+   MOOD PICKER
+========================== */
+document.querySelectorAll(".mood").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".mood").forEach(m => m.classList.remove("selected"));
+    btn.classList.add("selected");
+    selectedMood = Number(btn.dataset.value);
+  });
+});
+
+/* ==========================
+   STRESS SLIDER UPDATE
+========================== */
+stressInput.addEventListener("input", () => {
+  stressVal.textContent = stressInput.value;
+});
+
+/* ==========================
+   SAVE CHECK-IN
+========================== */
+document.getElementById("saveBtn").addEventListener("click", () => {
+  if (selectedMood === null) return showToast("Choose a mood first.");
+
+  const entry = {
+    ts: Date.now(),
+    mood: selectedMood,
+    stress: Number(stressInput.value),
+    sleep: Number(sleepInput.value),
+    note: noteInput.value.trim()
+  };
+
+  const data = loadData();
+  data.push(entry);
+  saveData(data);
+
+  refreshUI();
+  showToast("Check-in saved!");
+
+  noteInput.value = "";
+});
+
+/* ==========================
+   CLEAR DATA
+========================== */
+document.getElementById("clearBtn").addEventListener("click", () => {
+  if (confirm("Clear all check-in data?")) {
+    saveData([]);
+    refreshUI();
+    showToast("Data cleared.");
   }
+});
 
-  const latest = data[data.length-1];
-  const score = computeScore(latest);
-  scoreNum.textContent = score;
-  scoreLabel.textContent = score >= 75 ? 'Good' : score >= 50 ? 'Moderate' : 'At-risk';
-  latestMood.textContent = moodToText(latest.mood);
-  latestStress.textContent = latest.stress;
-  latestSleep.textContent = `${latest.sleep} hrs`;
-  aiInsight.textContent = generateAIInsight(data);
-
-  // update ring
-  scoreRing.data.datasets[0].data = [score, 100-score]; scoreRing.update();
-
-  // trend: build last 14 entries
-  const last = data.slice(-14);
-  trendChart.data.labels = last.map(e=> (new Date(e.ts)).toLocaleDateString());
-  trendChart.data.datasets[0].data = last.map(e=> e.mood);
-  trendChart.data.datasets[1].data = last.map(e=> e.stress);
-  trendChart.update();
-
-  // streak
-  const s = calcStreak(data);
-  streakNum.textContent = s;
-  streakBig.textContent = `${s} day${s!==1?'s':''}`;
-}
-
-function renderCharts(){
-  const data = readData();
-  const labels = data.map(e => (new Date(e.ts)).toLocaleDateString());
-  moodChart.data.labels = labels; moodChart.data.datasets[0].data = data.map(e=> e.mood); moodChart.update();
-  stressChart.data.labels = labels; stressChart.data.datasets[0].data = data.map(e=> e.stress); stressChart.update();
-}
-
-function renderCalendar(){
-  const wrap = document.getElementById('moodCalendar');
-  wrap.innerHTML = '';
-  const data = readData();
-  const days=30;
-  const today = new Date(); today.setHours(0,0,0,0);
-  for(let i=days-1;i>=0;i--){
-    const d = new Date(today); d.setDate(today.getDate()-i);
-    const iso = d.toISOString();
-    const item = data.find(it => (new Date(it.ts)).toDateString() === d.toDateString());
-    const div = document.createElement('div'); div.className='mood-day';
-    if(!item){ div.classList.add('mood-none'); div.textContent = d.getDate(); }
-    else {
-      if(item.mood >= 3) div.classList.add('mood-good');
-      else if(item.mood === 2) div.classList.add('mood-neutral');
-      else div.classList.add('mood-low');
-      div.textContent = item.mood >= 3 ? '😊' : item.mood ===2 ? '😐' : '☹️';
-      div.title = `${d.toDateString()}\nMood: ${moodToText(item.mood)}\nStress: ${item.stress}\nSleep: ${item.sleep}h`;
-    }
-    wrap.appendChild(div);
+document.getElementById("clearAll").addEventListener("click", () => {
+  if (confirm("Clear local storage completely?")) {
+    saveData([]);
+    refreshUI();
+    showToast("All data removed.");
   }
+});
+
+/* ==========================
+   SCORE CALCULATION
+========================== */
+function computeScore(entry) {
+  if (!entry) return 0;
+
+  const moodScore = (entry.mood / 4) * 50;
+  const stressScore = ((100 - entry.stress) / 100) * 35;
+  const sleepNorm = Math.min(entry.sleep / 8, 1);
+  const sleepScore = sleepNorm * 15;
+
+  return Math.round(moodScore + stressScore + sleepScore);
 }
 
-// ---------- Helpers ----------
-function moodToText(v){ switch(v){ case 4: return 'Great'; case 3: return 'Good'; case 2: return 'Okay'; case 1: return 'Low'; default: return 'Very low'; } }
+/* ==========================
+   STREAK CALCULATION
+========================== */
+function computeStreak(data) {
+  if (data.length === 0) return 0;
 
-function calcStreak(data){
-  if(!data.length) return 0;
-  // group by day (unique days with at least one entry)
-  const days = {};
-  data.forEach(d => { const ds = new Date(d.ts); ds.setHours(0,0,0,0); days[ds.toDateString()] = true; });
-  const dates = Object.keys(days).map(s => new Date(s)).sort((a,b)=>b-a); // descending
-  let streak = 0;
-  let cur = new Date(); cur.setHours(0,0,0,0);
-  for(let i=0;i<dates.length;i++){
-    const diff = daysBetween(dates[i], cur);
-    if(diff === 0){ streak++; cur.setDate(cur.getDate()-1); }
-    else if(diff > 0) break;
+  let streak = 1;
+  let cur = new Date(data[data.length - 1].ts);
+
+  for (let i = data.length - 2; i >= 0; i--) {
+    const d = new Date(data[i].ts);
+    const diff = Math.floor((cur - d) / (1000 * 60 * 60 * 24));
+
+    if (diff === 1) {
+      streak++;
+      cur = d;
+    } else break;
   }
   return streak;
 }
 
-// AI insight generator (rule-based summary)
-function generateAIInsight(data){
-  if(!data.length) return 'No data yet.';
-  const last7 = data.slice(-7);
-  const avgMood = (last7.reduce((s,e)=>s+e.mood,0)/last7.length).toFixed(2);
-  const avgStress = (last7.reduce((s,e)=>s+e.stress,0)/last7.length).toFixed(0);
-  const avgSleep = (last7.reduce((s,e)=>s+e.sleep,0)/last7.length).toFixed(1);
-  let msg = `Last 7 days — mood avg ${avgMood}/4, stress avg ${avgStress}/100, sleep avg ${avgSleep}h. `;
-  if(avgStress > 65) msg += 'Stress is high recently — try daily grounding exercises.';
-  else if(avgMood < 2) msg += 'Mood is lower than normal — small enjoyable activities could help.';
-  else msg += 'Overall stable — keep regular check-ins.';
-  return msg;
+/* ==========================
+   INSIGHTS GENERATOR
+========================== */
+function generateInsight(data) {
+  if (data.length < 3) return "Need more entries to generate insights.";
+
+  const last = data[data.length - 1];
+  const last3 = data.slice(-3);
+
+  const avgMood = last3.reduce((a, b) => a + b.mood, 0) / 3;
+  const avgStress = last3.reduce((a, b) => a + b.stress, 0) / 3;
+
+  let msg = "";
+
+  if (avgMood < 2) msg += "Your mood has been low lately. Consider rest or talking to someone. ";
+  if (avgStress > 70) msg += "Stress has been high recently. Try breathing exercises or short breaks. ";
+  if (last.sleep < 6) msg += "Recent sleep is low — consider adjusting bedtime. ";
+
+  return msg || "You're maintaining a balanced trend. Keep it up!";
 }
 
-// CSV export
-document.getElementById('exportCsv').addEventListener('click', ()=>{
-  const data = readData();
-  if(!data.length){ toast('No data to export'); return; }
-  const rows = [['timestamp','mood','stress','sleep','note']];
-  data.forEach(d => rows.push([d.ts,d.mood,d.stress,d.sleep, `"${(d.note||'').replace(/"/g,'""')}"` ]));
-  const csv = rows.map(r=>r.join(',')).join('\n');
-  const blob = new Blob([csv], {type:'text/csv'}); const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'mindwell_data.csv'; a.click(); URL.revokeObjectURL(url);
-});
+/* ==========================
+   TREND CHARTS
+========================== */
+let trendChart, moodChart, stressChart;
 
-// clear all local data (button on insights panel)
-document.getElementById('clearAll').addEventListener('click', ()=>{
-  if(confirm('Clear all local demo data?')){ localStorage.removeItem(STORAGE_KEY); toast('Local data cleared'); renderAll(); }
-});
+function updateCharts(data) {
+  const labels = data.map(e => new Date(e.ts).toLocaleDateString());
+  const moods = data.map(e => e.mood);
+  const stresses = data.map(e => e.stress);
 
-// quick actions
-document.getElementById('quickBreathe').addEventListener('click', ()=> toast('Breathing: inhale 4s — hold 4s — exhale 6s (repeat 5x)'));
-document.getElementById('quickWalk').addEventListener('click', ()=> toast('Take a 5-minute walk — move a bit and hydrate'));
+  // Destroy previous charts to avoid duplicates
+  if (trendChart) trendChart.destroy();
+  if (moodChart) moodChart.destroy();
+  if (stressChart) stressChart.destroy();
 
-// ---------- Render all ----------
-function renderAll(){
-  initCharts();
-  renderDashboard();
-  renderCharts();
-  renderCalendar();
-  const s = calcStreak(readData());
-  streakNum.textContent = s;
+  trendChart = new Chart(document.getElementById("trendChart"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Mood",
+          data: moods,
+          tension: 0.4
+        },
+        {
+          label: "Stress",
+          data: stresses,
+          tension: 0.4
+        }
+      ]
+    }
+  });
+
+  moodChart = new Chart(document.getElementById("moodChart"), {
+    type: "line",
+    data: { labels, datasets: [{ label: "Mood", data: moods }] }
+  });
+
+  stressChart = new Chart(document.getElementById("stressChart"), {
+    type: "line",
+    data: { labels, datasets: [{ label: "Stress", data: stresses }] }
+  });
 }
 
-renderAll();
+/* ==========================
+   SCORE RING
+========================== */
+let scoreRing;
 
-// ---------- small helpers ----------
-function avg(arr){ return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0; }
+function updateScoreRing(score) {
+  if (scoreRing) scoreRing.destroy();
+
+  scoreRing = new Chart(document.getElementById("scoreRing"), {
+    type: "doughnut",
+    data: {
+      labels: ["Score", "Remaining"],
+      datasets: [
+        {
+          data: [score, 100 - score],
+          borderWidth: 0
+        }
+      ]
+    },
+    options: {
+      cutout: "70%"
+    }
+  });
+}
+
+/* ==========================
+   MOOD CALENDAR
+========================== */
+function renderCalendar(data) {
+  const cal = document.getElementById("moodCalendar");
+  cal.innerHTML = "";
+
+  const today = new Date();
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const ds = d.toDateString();
+
+    const entry = data.find(e => new Date(e.ts).toDateString() === ds);
+
+    const div = document.createElement("div");
+    div.classList.add("mood-day");
+
+    if (!entry) {
+      div.classList.add("mood-none");
+      div.textContent = "-";
+    } else if (entry.mood >= 3) {
+      div.classList.add("mood-good");
+      div.textContent = "😊";
+    } else if (entry.mood === 2) {
+      div.classList.add("mood-neutral");
+      div.textContent = "😐";
+    } else {
+      div.classList.add("mood-low");
+      div.textContent = "☹️";
+    }
+
+    cal.appendChild(div);
+  }
+}
+
+/* ==========================
+   CSV EXPORT
+========================== */
+document.getElementById("exportCsv").addEventListener("click", () => {
+  const data = loadData();
+  if (data.length === 0) return showToast("No data.");
+
+  const header = "timestamp,mood,stress,sleep,note\n";
+  const rows = data
+    .map(e => `${e.ts},${e.mood},${e.stress},${e.sleep},"${e.note}"`)
+    .join("\n");
+
+  const blob = new Blob([header + rows], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "mindwatch_export.csv";
+  a.click();
+
+  URL.revokeObjectURL(url);
+});
+
+/* ==========================
+   NOTIFICATIONS
+========================== */
+document.getElementById("notifyBtn").addEventListener("click", async () => {
+  const perm = await Notification.requestPermission();
+  if (perm === "granted") {
+    new Notification("MindWatch Reminder", {
+      body: "Don't forget your daily check-in!"
+    });
+    showToast("Daily reminder enabled!");
+  }
+});
+
+/* ==========================
+   QUICK ACTIONS
+========================== */
+document.getElementById("quickBreathe").addEventListener("click", () => {
+  showToast("Take a deep breath…");
+});
+
+document.getElementById("quickWalk").addEventListener("click", () => {
+  showToast("Try a 5-minute walk!");
+});
+
+/* ==========================
+   ONBOARDING MODAL
+========================== */
+if (!localStorage.getItem("mw_seen_onboarding")) {
+  onboardModal.classList.remove("hidden");
+}
+
+onboardOk.addEventListener("click", () => {
+  onboardModal.classList.add("hidden");
+  localStorage.setItem("mw_seen_onboarding", "yes");
+});
+
+/* ==========================
+   REFRESH UI
+========================== */
+function refreshUI() {
+  const data = loadData();
+  const last = data[data.length - 1];
+
+  // Streak
+  const streak = computeStreak(data);
+  streakNum.textContent = streak;
+  streakBig.textContent = streak;
+  streakText.textContent = streak === 0 ? "Start tracking daily." : "Great consistency!";
+
+  // Latest stats
+  if (last) {
+    latestMood.textContent = last.mood;
+    latestStress.textContent = last.stress;
+    latestSleep.textContent = last.sleep;
+
+    const score = computeScore(last);
+    scoreNum.textContent = score;
+    scoreLabel.textContent = score > 70 ? "Good" : score > 40 ? "Fair" : "Low";
+    updateScoreRing(score);
+  } else {
+    updateScoreRing(0);
+  }
+
+  // Insights
+  aiInsight.textContent = generateInsight(data);
+
+  // Charts + Calendar
+  updateCharts(data);
+  renderCalendar(data);
+}
+
+/* ==========================
+   INIT
+========================== */
+refreshUI();

@@ -107,7 +107,7 @@ No backend needed for demo mode.
 ---
 
 ## ❤️ Credits
-Made with ❤️ by **Divyansh**  
+Made with ❤️ by **Anurag**  
 Team **Aphelion**
 
 ---

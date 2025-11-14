@@ -80,3 +80,36 @@ Optimized for:
 ---
 
 ## 📁 Project Structure
+📁 MindWatch
+├── index.html # Main layout
+├── style.css # Styling + UI components
+├── app.js # Core logic, charts, streak, insights
+└── README.md # Project documentation
+
+yaml
+Copy code
+
+---
+
+## ⚙️ Setup
+Just open `index.html` in any browser.
+
+No backend needed for demo mode.
+
+---
+
+## 🚀 Planned Upgrades
+- AWS Backend (Lambda + API Gateway + DynamoDB)
+- User accounts (Cognito)
+- Machine learning stress prediction
+- Mobile app (Flutter/React Native)
+
+---
+
+## ❤️ Credits
+Made with ❤️ by **Divyansh**  
+Team **Aphelion**
+
+---
+
+⭐ **If you like this project, please star the repo!**  
